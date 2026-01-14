@@ -1,8 +1,5 @@
-# [WIP] Entity Component System
-ECS System built as engine subsystem in C++20 standard.
-
-It may become a game engine.
-Or not.
+# Nocture Engine
+3D Game Engine with ECS system in C++20 standard.
 
 ## Building
 Use provided scripts.
