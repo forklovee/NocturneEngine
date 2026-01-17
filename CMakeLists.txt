@@ -8,8 +8,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_executable(${PROJECT_NAME} src/main.cpp)
 
 target_include_directories(${PROJECT_NAME} PRIVATE
-  include
-  include/windowing
+    include
+    include/windowing
+    include/components
+    include/entities
 )
 
 add_subdirectory(libs/glfw)
@@ -25,9 +27,10 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 )
 
 target_sources(${PROJECT_NAME} PRIVATE
-  src/game.cpp
-  src/entity_manager.cpp
-  src/entity.cpp
+        src/game.cpp
+        src/entities/entity_manager.cpp
+        src/entities/entity.cpp
+        src/components/component_manager.cpp
 
   src/windowing/window.cpp
 )

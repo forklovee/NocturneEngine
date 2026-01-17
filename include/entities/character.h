@@ -1,7 +1,7 @@
 #pragma once
 
-#include "components.h"
-#include "entity.h"
+#include "../components.h"
+#include "../entity.h"
 
 namespace NocEngine {
 class Character : public Entity {

@@ -7,6 +7,7 @@
 #include "GLFW/glfw3.h"
 #include <glad/glad.h>
 
+#include "component_manager.h"
 #include "windowing/window.h"
 
 void error_callback(int error, const char *description) {
@@ -22,9 +23,10 @@ int main() {
 
   NocEngine::Window window{{1280, 720}, "ECS Debug"};
 
-  while (!window.ShouldClose()) {
-    std::cout << "Window shouldn't close!\n";
+  NocEngine::ComponentManager& cm = NocEngine::ComponentManager::Get();
 
+
+  while (!window.ShouldClose()) {
     glfwSwapBuffers(window.GetHandle());
     glfwPollEvents();
   }
