@@ -38,6 +38,12 @@ namespace NocEngine{
         template<ValidComponent T>
         void DestroyComponent(Entity& entity);
 
+        void OnEntityDestroyed(const Entity& entity){
+            for (auto& compArr: m_components){
+                compArr->OnEntityDestroyed(entity);
+            }            
+        }
+
     private:
         ComponentManager() {
             m_components.reserve(64);

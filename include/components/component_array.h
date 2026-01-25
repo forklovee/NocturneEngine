@@ -1,5 +1,6 @@
 #pragma once
 
+#include <iostream>
 #include <concepts>
 #include <cassert>
 #include <unordered_map>
@@ -23,66 +24,78 @@ namespace NocEngine {
     class ComponentArray : public IComponentArray {
         typedef size_t EntityId;
         typedef size_t ComponentId;
+        static constexpr ComponentId INVALID = std::numeric_limits<ComponentId>::max();
         public:
+            bool HasComponent(const Entity& entity) const {
+                const size_t entityId = entity.GetId();
+                return (entityId < m_entityToComponent.size() && m_entityToComponent[entityId] != -1);
+            }
+
+            bool HasComponent(const size_t entityId) const {
+                return (entityId < m_entityToComponent.size() && m_entityToComponent[entityId] != -1);
+            }
+
             T& GetComponent(const Entity& entity) {
                 const size_t entityId = entity.GetId();
-                assert(m_entityToComponentMap.contains(entityId));
-
-                const size_t componentId = m_entityToComponentMap.at(entityId);
-                return m_components.at(componentId);
+                const size_t componentId = m_entityToComponent[entityId];
+                return m_components[componentId];
             }
 
             T& InsertComponent(const Entity& entity, T&& component) {
                 const size_t entityId = entity.GetId();
-                assert(!m_entityToComponentMap.contains(entityId));
+                if (m_entityToComponent.size() <= entityId){
+                    m_entityToComponent.resize(entityId+1, INVALID);
+                }
+                if (HasComponent(entityId)){
+                    return GetComponent(entity);
+                }
 
-                const size_t componentId = m_componentCount++;
+                const size_t componentId = m_components.size();
                 m_components.emplace_back(std::forward<T>(component));
-                m_entityToComponentMap[entityId] = componentId;
-                m_componentToEntityMap[componentId] = entityId;
+                m_entityToComponent[entityId] = componentId;
                 return m_components.at(componentId);
             }
 
             void RemoveComponent(const Entity& entity) {
                 const size_t entityId = entity.GetId();
-                auto it = m_entityToComponentMap.find(entityId);
-                if (it == m_entityToComponentMap.end()) { // Entity not found - nothing to do.
+                if (entityId >= m_entityToComponent.size()){
+                    std::cerr << "ComponentArray::RemoveComponent: entity does not exist.\n";
                     return;
                 }
-                const size_t componentId = it->second;
-                const size_t lastComponentId = m_componentCount - 1;
+
+                const size_t componentId = m_entityToComponent[entityId];
+                const size_t lastComponentId = m_components.size() - 1;
+
+                auto it = std::find(m_entityToComponent.begin(), m_entityToComponent.end(), lastComponentId);
+                if (it == m_entityToComponent.end()){
+                    return;
+                }
+                const size_t lastComponentEntityId = std::distance(m_entityToComponent.begin(), it);
                 if (componentId != lastComponentId){
-                    const size_t lastComponentEntityId = m_componentToEntityMap.at(lastComponentId);
                     // Swap removed component with last component
                     m_components[componentId] = std::move(m_components[lastComponentId]);
-                    m_entityToComponentMap[lastComponentEntityId] = componentId;
-                    m_entityToComponentMap[componentId] = lastComponentEntityId;
+                    m_entityToComponent[lastComponentEntityId] = componentId;
                 }
+                m_entityToComponent[entityId] = -1; // Invalidate entity.
                 m_components.pop_back();
-                // Remove this entity and last component id from the map.
-                m_entityToComponentMap.erase(entityId);
-                m_componentToEntityMap.erase(lastComponentId);
-                --m_componentCount;
             }
 
             void OnEntityDestroyed(const Entity& entity) override {
                 const size_t entityId = entity.GetId();
-                if (!m_entityToComponentMap.contains(entityId)) return;
-                RemoveComponent(entity);
+                if (HasComponent(entity)){
+                    RemoveComponent(entity);
+                }
             }
 
         public:
             ComponentArray() {
                 m_components.reserve(64);
-                m_entityToComponentMap.reserve(64);
-                m_componentToEntityMap.reserve(64);
+                m_entityToComponent.reserve(64);
             }
 
         private:
             std::vector<T> m_components{};
-            std::unordered_map<EntityId, ComponentId> m_entityToComponentMap{};
-            std::unordered_map<ComponentId, EntityId> m_componentToEntityMap{};
-            size_t m_componentCount{};
+            std::vector<ComponentId> m_entityToComponent{};
     };
 
 }

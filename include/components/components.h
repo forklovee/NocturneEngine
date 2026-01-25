@@ -24,4 +24,4 @@ struct CSphereShape: CComponent {
   float radius{};
 };
 
-} // namespace NocEngine
+}

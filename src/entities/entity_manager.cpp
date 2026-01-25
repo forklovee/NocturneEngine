@@ -1,4 +1,5 @@
-#include "../../include/entities/entity_manager.h"
+#include "entities/entity_manager.h"
+#include "component_manager.h"
 #include <memory>
 #include <ranges>
 
@@ -11,6 +12,13 @@ void EntityManager::Update() {
             m_entities.push_back(std::move(entity));
         }
         m_entitiesToAdd.clear();
+    }
+
+    // Notify ComponentManager about entity deaths to destroy their components
+    auto& cm = ComponentManager::Get();
+    for (const Entity& entity: m_entities){
+        if (entity.IsAlive()) continue;
+        cm.OnEntityDestroyed(entity);    
     }
 
     // Destroy dead entities
