@@ -19,8 +19,6 @@ class EntityManager {
 
     std::vector<Entity>& GetEntities();
     Entity& CreateEntity();
-    void RemoveEntity(const Entity& entity);
-
 
   private:
     EntityManager() {};
@@ -30,7 +28,6 @@ class EntityManager {
   private:
     std::vector<Entity> m_entities{};
     std::vector<Entity> m_entitiesToAdd{};
-    std::vector<size_t> m_entitiesToRemove{};
     size_t m_totalEntities{};
   };
 

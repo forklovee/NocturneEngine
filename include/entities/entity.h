@@ -18,6 +18,8 @@ class EntityManager;
     void Destroy() { m_isAlive = false; }
     bool IsAlive() const { return m_isAlive; };
 
+    const std::bitset<64>& GetComponentBits() const;
+
   private:
     Entity();
     Entity(const size_t id);

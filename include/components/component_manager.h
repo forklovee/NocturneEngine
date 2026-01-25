@@ -1,90 +1,17 @@
 #pragma once
 #include <array>
 #include <vector>
-#include <cassert>
 #include <typeindex>
-#include <unordered_map>
+#include <memory>
+#include <algorithm>
+#include <bitset>
+#include <type_traits>
 
+#include "component_array.h"
 #include "components.h"
 #include "entity.h"
 
-namespace NocEngine {
-    template<typename T>
-    concept ValidComponent = std::is_base_of_v<CComponent, T> && requires
-    {
-        { T::bit } -> std::convertible_to<size_t>;
-    };
-
-    // Necessary interface to store component arrays in ComponentManager.
-    class IComponentArray {
-    public:
-        virtual ~IComponentArray() = default;
-        virtual void OnEntityDestroyed(const Entity& entity) = 0;
-    };
-
-    template<ValidComponent T>
-    class ComponentArray : public IComponentArray {
-        typedef size_t EntityId;
-        typedef size_t ComponentId;
-        public:
-            T& GetComponent(const Entity& entity) {
-                const size_t entityId = entity.GetId();
-                assert(m_entityToComponentMap.contains(entityId));
-
-                const size_t componentId = m_entityToComponentMap.at(entityId);
-                return m_components.at(componentId);
-            }
-
-            T& InsertComponent(const Entity& entity, T&& component) {
-                const size_t entityId = entity.GetId();
-                assert(!m_entityToComponentMap.contains(entityId));
-
-                const size_t componentId = m_componentCount++;
-                m_components[componentId] = component;
-                m_entityToComponentMap.insert({ entityId, componentId });
-                m_componentToEntityMap.insert({ componentId, entityId });
-                return m_components.at(componentId);
-            }
-
-            void RemoveComponent(const Entity& entity) {
-                const size_t entityId = entity.GetId();
-                assert(m_entityToComponentMap.contains(entityId));
-
-                const size_t componentId = m_entityToComponentMap.at(entityId);
-                const size_t lastComponentId = --m_componentCount; //shrink size by 1
-                if (m_componentCount == 0) {
-                    // invalidated, don't have to swap anything.
-                    return;
-                }
-
-                // Swap removed component with last component
-                const size_t lastComponentEntityId = m_componentToEntityMap.at(lastComponentId);
-                m_components[componentId] = std::move(m_components[lastComponentId]);
-                // Remove this entity and last component id from the map.
-                m_entityToComponentMap.erase(entityId);
-                m_componentToEntityMap.erase(lastComponentId);
-                // Now, swap last component's index it's entity.
-                m_entityToComponentMap.at(lastComponentEntityId) = componentId;
-                m_componentToEntityMap.insert({ componentId, lastComponentEntityId });
-            }
-
-            void OnEntityDestroyed(const Entity& entity) override {
-                const size_t entityId = entity.GetId();
-                assert(m_entityToComponentMap.contains(entityId));
-                RemoveComponent(entity);
-            }
-
-        private:
-            ComponentArray() {m_components.reserve(32);}
-
-        private:
-            std::vector<T> m_components{};
-            std::unordered_map<EntityId, ComponentId> m_entityToComponentMap{};
-            std::unordered_map<ComponentId, EntityId> m_componentToEntityMap{};
-            size_t m_componentCount{};
-    };
-
-
+namespace NocEngine{
     class ComponentManager
     {
     public:
@@ -94,10 +21,16 @@ namespace NocEngine {
         }
 
         template<ValidComponent T>
+        size_t GetOrRegisterComponentTypeId();
+
+        template<ValidComponent T>
         T& GetComponent(const Entity& entity) const;
 
         template<ValidComponent T>
-        size_t GetComponentBit();
+        std::bitset<64> GetComponentBitset() const;
+
+        template<ValidComponent T>
+        bool HasComponent(const Entity& entity) const;
 
         template<ValidComponent T>
         T& CreateComponent(Entity& entity);
@@ -106,10 +39,87 @@ namespace NocEngine {
         void DestroyComponent(Entity& entity);
 
     private:
-        ComponentManager() {};
+        ComponentManager() {
+            m_components.reserve(64);
+            m_registered_types.reserve(64);
+        }
 
     private:
-        std::unordered_map<std::type_index, std::unique_ptr<IComponentArray>> m_components{};
-
+        std::vector<std::unique_ptr<IComponentArray>> m_components{};
+        std::vector<std::type_index> m_registered_types{};
     };
+    
+    template<ValidComponent T>
+    size_t ComponentManager::GetOrRegisterComponentTypeId()
+    {
+        const std::type_index index{typeid(T)};
+        auto it = std::find(m_registered_types.begin(), m_registered_types.end(), index);
+        if (it == m_registered_types.end()) // Register Component Type
+        {
+            m_registered_types.push_back(index);
+            m_components.emplace_back(std::make_unique<ComponentArray<T>>()); // Every component needs an array.
+            return m_registered_types.size() - 1;
+        }
+        return std::distance(m_registered_types.begin(), it);
+    }
+
+    template<ValidComponent T>
+    T& ComponentManager::GetComponent(const Entity& entity) const
+    {
+        size_t componentTypeId = GetOrRegisterComponentTypeId<T>();
+        IComponentArray* basePtr = m_components.at(componentTypeId).get();
+        auto* componentArray = static_cast<ComponentArray<T>*>(basePtr);
+        return componentArray->GetComponent(entity);
+    }
+
+    template<ValidComponent T>
+    std::bitset<64> ComponentManager::GetComponentBitset() const
+    {
+        std::bitset<64> componentBitset{};
+        const std::type_index index{typeid(T)};
+        auto it = std::find(m_registered_types.begin(), m_registered_types.end(), index);
+        if (it == m_registered_types.end()) 
+        {
+            return componentBitset;
+        }
+        size_t componentTypeIndex = std::distance(m_registered_types.begin(), it); 
+        componentBitset.set(componentTypeIndex);
+        return componentBitset;
+    }
+
+    template<ValidComponent T>
+    bool ComponentManager::HasComponent(const Entity& entity) const
+    {
+        return (entity.GetComponentBits() & GetComponentBitset<T>()).any();
+    }
+
+
+    template <ValidComponent T>
+    T& ComponentManager::CreateComponent(Entity& entity)
+    {
+        size_t componentTypeId = GetOrRegisterComponentTypeId<T>();
+
+        entity.m_componentBits |= GetComponentBitset<T>();
+
+        IComponentArray* basePtr = m_components.at(componentTypeId).get();
+        auto* componentArray = static_cast<ComponentArray<T>*>(basePtr);
+        return componentArray->InsertComponent(entity, T{});
+    }
+
+    template<ValidComponent T>
+    void ComponentManager::DestroyComponent(Entity &entity)
+    {
+        const std::type_index index{typeid(T)};
+        auto it = std::find(m_registered_types.begin(), m_registered_types.end(), index);
+        if (it == m_registered_types.end()){ // Component type doesn't exist.
+            return;
+        }
+
+        entity.m_componentBits &= ~GetComponentBitset<T>();
+
+        size_t componentTypeId = std::distance(m_registered_types.begin(), it);
+        IComponentArray* basePtr = m_components.at(componentTypeId).get();
+        auto* componentArray = static_cast<ComponentArray<T>*>(basePtr);
+        componentArray->RemoveComponent(entity);
+    }
 } // NocEngine

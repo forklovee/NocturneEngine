@@ -30,9 +30,9 @@ target_sources(${PROJECT_NAME} PRIVATE
         src/game.cpp
         src/entities/entity_manager.cpp
         src/entities/entity.cpp
-        src/components/component_manager.cpp
 
-  src/windowing/window.cpp
+        src/events/event_manager.cpp
+        src/windowing/window.cpp
 )
 
 target_link_libraries(${PROJECT_NAME} glad glfw)

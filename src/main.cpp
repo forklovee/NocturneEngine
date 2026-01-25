@@ -7,8 +7,12 @@
 #include "GLFW/glfw3.h"
 #include <glad/glad.h>
 
-#include "component_manager.h"
+#include "components/components.h"
+#include "components/component_manager.h"
+#include "entities/entity_manager.h"
 #include "windowing/window.h"
+
+using namespace NocEngine;
 
 void error_callback(int error, const char *description) {
   fprintf(stderr, "GLFWError: %s\n", description);
@@ -21,14 +25,29 @@ int main() {
     return -1;
   }
 
-  NocEngine::Window window{{1280, 720}, "ECS Debug"};
+  Window window{{1280, 720}, "ECS Debug"};
 
-  NocEngine::ComponentManager& cm = NocEngine::ComponentManager::Get();
-
+  EntityManager& em = EntityManager::Get();
+  ComponentManager& cm = ComponentManager::Get();
+  
+  for (size_t i{}; i < 1024; i++) {
+    Entity& e = em.CreateEntity();
+    cm.CreateComponent<CTransform>(e);
+    cm.CreateComponent<CBoxShape>(e);
+    cm.CreateComponent<CSphereShape>(e);
+  }
 
   while (!window.ShouldClose()) {
+    em.Update();
     glfwSwapBuffers(window.GetHandle());
     glfwPollEvents();
+  }
+
+
+  const std::vector<Entity>& entities = em.GetEntities();
+  std::cout << "Entities (" << entities.size() << ")\n";
+  for (Entity& e: em.GetEntities()) {
+    std::cout << e.GetId() << " " << e.GetComponentBits() << "\n";
   }
 
   std::cout << "Window closed.\n";

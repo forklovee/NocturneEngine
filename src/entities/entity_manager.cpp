@@ -1,9 +1,20 @@
 #include "../../include/entities/entity_manager.h"
 #include <memory>
+#include <ranges>
 
 namespace NocEngine {
 
 void EntityManager::Update() {
+    // Add new entities
+    if (!m_entitiesToAdd.empty()) {
+        for (Entity& entity: m_entitiesToAdd) {
+            m_entities.push_back(std::move(entity));
+        }
+        m_entitiesToAdd.clear();
+    }
+
+    // Destroy dead entities
+    std::erase_if(m_entities, [](const Entity& e) {return !e.IsAlive();});
 }
 
 std::vector<Entity>& EntityManager::GetEntities() {
@@ -15,10 +26,6 @@ Entity& EntityManager::CreateEntity() {
         Entity(m_totalEntities++)
         );
     return m_entitiesToAdd.back();
-}
-
-void EntityManager::RemoveEntity(const Entity& entity) {
-    m_entitiesToRemove.push_back(entity.GetId());
 }
 
 bool EntityManager::isEntityMarkedForDeletion(
