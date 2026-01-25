@@ -1,24 +1,23 @@
 # Nocture Engine
-A data-oriented 3D game engine built from scratch in modern C++20, focused on performance and clean architecture.
+A work-in-progress data-oriented 3D (not yet!) game engine built from scratch in modern C++20.
 
-## Overview
 Nocturne Engine is a learning project exploring low-level game engine design, featuring a custom Entity Component System and OpenGL rendering pipeline. Built to understand how modern game engines work under the hood.
 
 ## Current State
-<img width="1280" height="720" alt="image" src="https://github.com/user-attachments/assets/0eea7b47-e49e-46fa-9fdf-126185cef8fe" />
+Beautiful orange square :)
+
+<img width="720" height="360" alt="image" src="https://github.com/user-attachments/assets/5e2536ee-8847-4cfe-922d-628d658b8534" />
 
 ## Current Features
 ### Core Systems:
 Custom Entity Component System (ECS) architecture
-GLFW window management and input handling
+- Implemented Entities and Components with managers for each
+- No systems for now
 
-### Rendering:
-OpenGL 3.3+ rendering context
+GLFW window management
+- No input handling yet
 
-### Build System:
-CMake configuration
-Git submodules for dependencies
-Build scripts for quick compilation
+Very simple, naive mesh rendering.
 
 ### Architecture Highlights
 The engine follows data-oriented design principles:
@@ -27,8 +26,20 @@ Contiguous component storage for cache efficiency
 Separation of data (components) and behavior (systems)
 
 ## Building
-Use provided scripts.
+Make sure to download included submodules with:
+```sh
+git submodule init
+git submodule update
+```
+Then build with cmake for your preferred C++20 compatible compiler :)
+```sh
+cmake -B build
+cmake --build build
+```
+
 ### Requirements:
-C++20 compatible compiler
-CMake 3.15+
-OpenGL 3.3+ compatible GPU
+- C++20 compatible compiler
+- CMake 3.15+
+- OpenGL 3.3+ compatible GPU
+
+Tested both on Linux(Arch) and Windows 11 using GCC and clang.
