@@ -33,8 +33,13 @@ int main() {
   for (size_t i{}; i < 1024; i++) {
     Entity& e = em.CreateEntity();
     cm.CreateComponent<CTransform>(e);
-    cm.CreateComponent<CBoxShape>(e);
-    cm.CreateComponent<CSphereShape>(e);
+
+    if (i % 3 == 0){
+      cm.CreateComponent<CBoxShape>(e);
+    }
+    if (i % 2 == 0){
+      cm.CreateComponent<CSphereShape>(e);
+    }
   }
 
   while (!window.ShouldClose()) {
@@ -44,10 +49,10 @@ int main() {
   }
 
 
-  const std::vector<Entity>& entities = em.GetEntities();
+  const std::vector<Entity*> entities = em.GetAllEntities();
   std::cout << "Entities (" << entities.size() << ")\n";
-  for (Entity& e: em.GetEntities()) {
-    std::cout << e.GetId() << " " << e.GetComponentBits() << "\n";
+  for (Entity* e: entities) {
+    std::cout << e->GetId() << " " << e->GetComponentBits() << "\n";
   }
 
   std::cout << "Window closed.\n";

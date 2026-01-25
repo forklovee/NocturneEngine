@@ -21,12 +21,10 @@ class EntityManager;
     const std::bitset<64>& GetComponentBits() const;
 
   private:
-    Entity();
-    Entity(const size_t id);
+    Entity() = default;
 
   private:
     std::bitset<64> m_componentBits;
-    std::unordered_map<std::type_index, size_t> m_componentIndex{};
 
     size_t m_id{};
     bool m_isAlive{true};

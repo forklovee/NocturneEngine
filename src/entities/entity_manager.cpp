@@ -6,33 +6,51 @@
 namespace NocEngine {
 
 void EntityManager::Update() {
+    auto& cm = ComponentManager::Get();
+
     // Add new entities
     if (!m_entitiesToAdd.empty()) {
         for (Entity& entity: m_entitiesToAdd) {
-            m_entities.push_back(std::move(entity));
+            entity.m_id = m_entities.size();
+            m_entities.emplace_back(std::move(entity));
         }
         m_entitiesToAdd.clear();
     }
 
-    // Notify ComponentManager about entity deaths to destroy their components
-    auto& cm = ComponentManager::Get();
-    for (const Entity& entity: m_entities){
-        if (entity.IsAlive()) continue;
-        cm.OnEntityDestroyed(entity);    
-    }
-
     // Destroy dead entities
-    std::erase_if(m_entities, [](const Entity& e) {return !e.IsAlive();});
+    // and Notify ComponentManager about entity deaths to destroy their components
+    size_t idx{0};
+    while(idx < m_entities.size()){
+        Entity& entity{m_entities[idx]};
+        if (entity.IsAlive()){
+            idx++;
+            continue;
+        }
+        cm.OnEntityDestroyed(entity);
+
+        // Swap-pop
+        size_t lastIndex = m_entities.size()-1;
+        if (lastIndex != idx){
+            m_entities[idx] = std::move(m_entities[lastIndex]);
+        }
+        m_entities.pop_back();
+    }
 }
 
-std::vector<Entity>& EntityManager::GetEntities() {
-    return m_entities;
+std::vector<Entity*> EntityManager::GetAllEntities()
+{
+    std::vector<Entity*> entity_ptrs{};
+    entity_ptrs.reserve(m_entities.size());
+    for (Entity& e: m_entities){
+        entity_ptrs.push_back(&e);
+    }
+    return entity_ptrs;
 }
+
 
 Entity& EntityManager::CreateEntity() {
-    m_entitiesToAdd.push_back(
-        Entity(m_totalEntities++)
-        );
+    size_t entityId{m_entities.size()};
+    m_entitiesToAdd.emplace_back(Entity());
     return m_entitiesToAdd.back();
 }
 
@@ -41,4 +59,4 @@ bool EntityManager::isEntityMarkedForDeletion(
   return !entity || !entity->IsAlive();
 }
 
-} // namespace NocEngine
+}

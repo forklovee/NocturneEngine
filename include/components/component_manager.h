@@ -38,6 +38,12 @@ namespace NocEngine{
         template<ValidComponent T>
         void DestroyComponent(Entity& entity);
 
+        void OnEntityIdUpdated(const Entity& entity, const size_t oldEntityId){
+            for (auto& compArr: m_components){
+                compArr->OnEntityIdUpdated(entity, oldEntityId);
+            }
+        }
+
         void OnEntityDestroyed(const Entity& entity){
             for (auto& compArr: m_components){
                 compArr->OnEntityDestroyed(entity);

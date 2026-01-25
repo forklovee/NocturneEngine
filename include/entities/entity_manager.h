@@ -17,18 +17,21 @@ class EntityManager {
 
     void Update();
 
-    std::vector<Entity>& GetEntities();
+    std::vector<Entity*> GetAllEntities();
+
     Entity& CreateEntity();
 
   private:
-    EntityManager() {};
+    EntityManager() {
+      m_entities.reserve(128);
+      m_entitiesToAdd.reserve(128);
+    }
 
     static bool isEntityMarkedForDeletion(const std::shared_ptr<Entity> &entity);
 
   private:
     std::vector<Entity> m_entities{};
     std::vector<Entity> m_entitiesToAdd{};
-    size_t m_totalEntities{};
   };
 
 } // namespace NocEngine
