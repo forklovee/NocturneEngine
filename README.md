@@ -12,7 +12,7 @@ Beautiful orange square :)
 ### Core Systems:
 Custom Entity Component System (ECS) architecture
 - Implemented Entities and Components with managers for each
-- No systems for now
+- Rendering System
 
 GLFW window management
 - No input handling yet
