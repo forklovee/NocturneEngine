@@ -1,5 +1,5 @@
 # Nocture Engine
-A work-in-progress data-oriented 3D (not yet!) game engine built from scratch in modern C++20.
+A work-in-progress data-oriented (3D, but not yet!) game engine built from scratch in modern C++20.
 
 Nocturne Engine is a learning project exploring low-level game engine design, featuring a custom Entity Component System and OpenGL rendering pipeline. Built to understand how modern game engines work under the hood.
 
@@ -20,10 +20,9 @@ GLFW window management
 Very simple, naive mesh rendering.
 
 ### Architecture Highlights
-The engine follows data-oriented design principles:
-
-Contiguous component storage for cache efficiency
-Separation of data (components) and behavior (systems)
+The engine follows data-oriented design principles
+- Contiguous component storage for cache efficiency
+- Separation of data (components) and behavior (systems)
 
 ## Building
 Make sure to download included submodules with:
