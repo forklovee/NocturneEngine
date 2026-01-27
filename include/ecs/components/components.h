@@ -1,5 +1,9 @@
 #pragma once
 
+#define GLFW_INCLUDE_NONE
+#include <glad/glad.h>
+#include <cstdint>
+
 #include "math.h"
 
 namespace NocEngine {
@@ -14,7 +18,21 @@ struct CTransform: CComponent {
 };
 
 struct CMeshRenderer: CComponent{
-  size_t mesh_handle_id{};
+  struct MeshData* mesh_ptr;
+  class Shader* shader_ptr;
+
+  uint32_t VAO{};
+  uint32_t VBO{};
+  uint32_t EBO{};
+
+  // :(
+  // No separation of systems and data
+  // I know... I feel bad about this, but will fix it later!!!
+  ~CMeshRenderer() {
+    glDeleteVertexArrays(1, &VAO);
+    glDeleteBuffers(1, &VBO);
+    glDeleteBuffers(1, &EBO);
+  }
 };
 
 struct CBoxShape: CComponent {

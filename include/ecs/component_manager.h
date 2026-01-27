@@ -22,7 +22,7 @@ class ComponentManager
     }
 
     template<ValidComponent T>
-    T& GetComponent(Entity entity) const;
+    T& GetComponent(Entity entity);
 
     template<ValidComponent T>
     std::vector<T>& GetComponents() const;
@@ -63,7 +63,7 @@ class ComponentManager
 };
 
 template<ValidComponent T>
-T& ComponentManager::GetComponent(Entity entity) const {
+T& ComponentManager::GetComponent(Entity entity) {
     size_t componentTypeId = GetOrRegisterComponentTypeId<T>();
     IComponentArray* basePtr = m_components.at(componentTypeId).get();
     auto* componentArray = static_cast<ComponentArray<T>*>(basePtr);

@@ -60,8 +60,9 @@ template<EntityFuncCallback Func>
 void EntityManager::ForEachWithBitmask(Func&& callback, const std::bitset<64>& bitmask){
   for (int entityId{}; entityId < m_isEntityAlive.size(); ++entityId){
     if (!IsAlive(entityId)) continue;
-    if ((m_componentBitmasks[entityId] & bitmask).none()) continue;
-    callback(entityId);
+    if ((m_componentBitmasks[entityId] & bitmask) == bitmask){
+      callback(entityId);
+    }
   }
 }
 

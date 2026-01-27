@@ -1,26 +1,36 @@
 #pragma once
 
 #include <cstdint>
-#include <fstream>
+#include <vector>
 
 namespace NocEngine
 {
 
-// Class representing loaded mesh data from external 3d model
-class MeshData
+// Struct representing loaded mesh data from external 3d model
+struct MeshData
 {
-public:
-    MeshData();
-    MeshData(const char* file_path);
-    ~MeshData();
+    MeshData() {
+        // Temporary, just for testing purposes
+        // Plane Mesh
+        vertices = {
+          0.5f,  0.5f, 0.0f,  // top right
+          0.5f, -0.5f, 0.0f,  // bottom right
+          -0.5f, -0.5f, 0.0f,  // bottom left
+          -0.5f,  0.5f, 0.0f   // top left 
+        };
 
-private:
-    void loadObjMesh(std::ifstream& file);
+        indices = {
+        0, 1, 3,
+        1, 2, 3
+        };
+        use_indices = true;
+    }
 
-private:
-    uint32_t VAO{};
-    uint32_t VBO{};
-    uint32_t EBO{};
+    // MeshData(const char* file_path);
+
+    std::vector<float> vertices{};
+    std::vector<uint32_t> indices{};
+    bool use_indices{};
 };
 
 }
