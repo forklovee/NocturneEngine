@@ -4,16 +4,15 @@ A work-in-progress data-oriented (3D, but not yet!) game engine built from scrat
 Nocturne Engine is a learning project exploring low-level game engine design, featuring a custom Entity Component System and OpenGL rendering pipeline. Built to understand how modern game engines work under the hood.
 
 ## Current State
-Beautiful orange square :)
 
-<img width="720" height="360" alt="image" src="https://github.com/user-attachments/assets/5e2536ee-8847-4cfe-922d-628d658b8534" />
+<img width="1282" height="752" alt="image" src="https://github.com/user-attachments/assets/0efa81e9-dd42-404c-a5b5-45bf618bcde0" />
 
 ## Current Features
 ### Core Systems:
 Custom Entity Component System (ECS) architecture
 - Entities and Entity Manager/Factory
 - Components and Component Manager/Factory
-- Rendering System
+- Rendering System (2D for now)
 - Resource Manager (sync loading, for now)
 
 GLFW window management
@@ -43,4 +42,4 @@ cmake --build build
 - CMake 3.15+
 - OpenGL 3.3+ compatible GPU
 
-Tested both on Linux(Arch) and Windows 11 using GCC and clang.
+Builds both on Arch (GCC and Clang) and Windows 11 on MSVC (VS2022).
