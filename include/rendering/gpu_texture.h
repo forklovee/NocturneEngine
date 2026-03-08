@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <iostream>
 
 namespace NocEngine
 {
@@ -10,6 +11,7 @@ namespace NocEngine
 		virtual void Destroy() = 0;
 		virtual bool IsValid() const = 0;
 		virtual void Bind() const = 0;
+		virtual void Unbind() const = 0;
 	};
 
 	struct OpenGL_Texture: public GPU_Texture {
@@ -31,7 +33,12 @@ namespace NocEngine
 
 		void Bind() const override {
 			if (!IsValid()) return;
+			glActiveTexture(GL_TEXTURE0);
 			glBindTexture(GL_TEXTURE_2D, texture_id);
+		}
+
+		void Unbind() const override {
+			glBindTexture(GL_TEXTURE_2D, 0);
 		}
 
 	};

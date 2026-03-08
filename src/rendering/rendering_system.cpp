@@ -11,21 +11,25 @@
 #include "component_manager.h"
 #include "components.h"
 #include "entity_manager.h"
-#include "mesh.h"
+#include "meshdata.h"
 #include "texture.h"
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/ext/matrix_clip_space.hpp>
 #include <chrono>
+#include <limits>
 #include <camera_component.h>
+#include <light_component.h>
 
 namespace NocEngine
 {
     RenderingSystem::RenderingSystem()
         : m_baseShader("assets/shaders/base_vertex.glsl", "assets/shaders/base_fragment.glsl"),
-            m_activeCamera(EntityManager::Get().CreateEntity())
+            m_activeCamera(EntityManager::Get().CreateEntity()),
+            m_env{}
     {
 		CTransform& transformComponent = ComponentManager::Get().CreateComponent<CTransform>(m_activeCamera);
-		transformComponent.position = glm::vec3(-5.f, 5.f, -30.f);
+        transformComponent.rotation.x = glm::radians(15.f);
+        transformComponent.position = glm::vec3(0.f, -5.f, -15.f);
         CCamera& cameraComponent = ComponentManager::Get().CreateComponent<CCamera>(m_activeCamera);
         
         glEnable(GL_DEPTH_TEST);
@@ -42,12 +46,12 @@ namespace NocEngine
         }
 
         m_baseShader.Use();
-        m_baseShader.SetUniformInt("albedoTexture", 0);
 
+        // Process Camera
         CTransform& cameraTransform = ComponentManager::Get().GetComponent<CTransform>(m_activeCamera);
         glm::mat4 view = getMatrixFromCTransform(cameraTransform);
 
-        CCamera& cameraProperties = ComponentManager::Get().GetComponent<CCamera>(m_activeCamera);
+        CCamera& cameraProperties = GetActiveCameraComponent();
         glm::mat4 projection{};
         switch (cameraProperties.projection_type) {
             case CCamera::ProjectionType::Perspective:
@@ -64,24 +68,32 @@ namespace NocEngine
                 break;
         }
 
+        // Set Ambient Light
+        m_baseShader.SetUniformVec3("ambientLightColor", m_env.ambient_light);
+        m_baseShader.SetUniformFloat("ambientLightStrength", m_env.ambient_light_strength);
+
+        // Set PV matrices
         m_baseShader.SetUniformMat4("view", view);
         m_baseShader.SetUniformMat4("projection", projection);
 
-        auto before_render = std::chrono::high_resolution_clock::now();
+        // Process Lights (Single for now.)
+        EntityManager::Get().ForEachWithBitmask(
+            [this](Entity entity) {
+                CLightComponent& lc = ComponentManager::Get().GetComponent<CLightComponent>(entity);
+                CTransform& tc = ComponentManager::Get().GetComponent<CTransform>(entity);
+                m_baseShader.SetUniformVec3("lightPosition", tc.position);
+                m_baseShader.SetUniformVec3("lightColor", lc.light_color * lc.light_strength);
+            },
+            ComponentManager::Get().GetComponentBitset<CLightComponent>() |
+            ComponentManager::Get().GetComponentBitset<CTransform>()
+            );
 
+        // Render all renderable entities
         EntityManager::Get().ForEachWithBitmask(
             [this](Entity entity) {
                 renderEntity(entity);
             },
             getRequiredBitmask());
-
-        auto end = std::chrono::high_resolution_clock::now();
-
-        auto setup_time = std::chrono::duration_cast<std::chrono::milliseconds>(before_render - start).count();
-        auto render_time = std::chrono::duration_cast<std::chrono::milliseconds>(end - before_render).count();
-
-        std::cout << "Setup: " << setup_time << "ms, Render: " << render_time << "ms, Total: "
-            << (setup_time + render_time) << "ms (" << (1000.0f / (setup_time + render_time)) << " FPS)\n";
     }
 
     const std::bitset<64> RenderingSystem::GetRenderableEnityBitmask() const
@@ -123,15 +135,22 @@ namespace NocEngine
 
         if (!meshRenderer.gpu_mesh) return; // Mesh is needed for rendering. Texture is optional.
 
+        // Set Model and Normal Matrices
 		glm::mat4 model = getMatrixFromCTransform(transform);
-
+        glm::mat4 normalMatrix = glm::transpose(glm::inverse(model));
         m_baseShader.SetUniformMat4("model", model);
+        m_baseShader.SetUniformMat4("normalMatrix", normalMatrix);
 
+        // Bind mesh texture
         if (meshRenderer.gpu_texture) {
             meshRenderer.gpu_texture->Bind();
         }
+        else {
+            m_white_texture->Bind();
+        }
 
         meshRenderer.gpu_mesh->Draw();
+
     }
 
     GPU_Mesh* RenderingSystem::getGPUMesh(const ResourceHandle<MeshData>& meshdata_handle)
@@ -173,11 +192,14 @@ namespace NocEngine
             GL_STATIC_DRAW);
 
         // vertex positions
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
         glEnableVertexAttribArray(0);
-        // vertex texture coords
-        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3*sizeof(float)));
+        // vertex normals
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3*sizeof(float)));
         glEnableVertexAttribArray(1);
+        // vertex texture coords
+        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6*sizeof(float)));
+        glEnableVertexAttribArray(2);
 
         if (mesh_data->use_indices) {
             glGenBuffers(1, &gpu_mesh->EBO);
@@ -252,6 +274,30 @@ namespace NocEngine
         m_gpuTextures[texture_id] = std::move(gpu_texture);
 	    return m_gpuTextures[texture_id].get();
     }
+
+    void RenderingSystem::createWhiteTexture()
+    {
+        if (m_white_texture) {
+            return;
+        }
+
+        auto gpuTexture = std::make_unique<OpenGL_Texture>();
+        gpuTexture->generation = 0;
+
+        glGenTextures(1, &gpuTexture->texture_id);
+        glBindTexture(GL_TEXTURE_2D, gpuTexture->texture_id);
+
+        unsigned char whiteVec[] = { 255, 255, 255 };
+        glTexImage2D(GL_TEXTURE_2D, 1, GL_RGB8, 1, 1, 0, GL_RGB8, GL_UNSIGNED_BYTE, whiteVec);
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+        glBindTexture(GL_TEXTURE_2D, 0);
+
+        m_gpuTextures[std::numeric_limits<uint32_t>::max()] = std::move(gpuTexture);
+    }
+
 
     glm::mat4 RenderingSystem::getMatrixFromCTransform(const CTransform& transform_component) const
     {

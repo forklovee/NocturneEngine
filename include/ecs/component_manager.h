@@ -25,7 +25,7 @@ class ComponentManager
     T& GetComponent(Entity entity);
 
     template<ValidComponent T>
-    std::vector<T>& GetComponents() const;
+    std::vector<T>& GetComponents();
 
     template<ValidComponent T>
     bool HasComponent(Entity entity) const;
@@ -71,11 +71,8 @@ T& ComponentManager::GetComponent(Entity entity) {
 }
 
 template<ValidComponent T>
-std::vector<T>& ComponentManager::GetComponents() const {
+std::vector<T>& ComponentManager::GetComponents() {
     ComponentArray<T>* arrayPtr = GetComponentArray<T>();
-    if (!arrayPtr){
-        return {};
-    }
     return arrayPtr->GetComponents();
 }   
 
@@ -148,7 +145,7 @@ ComponentArray<T>* ComponentManager::GetComponentArray() {
         return nullptr;
     }
     const size_t arrayIndex(std::distance(m_registered_types.begin(), it));
-    return m_components[arrayIndex].get();
+    return static_cast<ComponentArray<T>*>(m_components[arrayIndex].get());
 }
 
 } // NocEngine

@@ -36,12 +36,11 @@ namespace NocEngine {
 
             T& GetComponent(const Entity& entity) {
 				assert(HasComponent(entity) && "ComponentArray::GetComponent: entity does not have component.");
-
                 const size_t componentId = m_entityToComponent[entity];
                 return m_components[componentId];
             }
 
-            std::vector<T>& GetComponents() const {
+            std::vector<T>& GetComponents() {
                 return m_components;
             }
 

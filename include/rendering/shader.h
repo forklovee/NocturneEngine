@@ -23,7 +23,8 @@ public:
 
     void Use() const;
 	void SetUniformInt(const std::string& name, int value) const;
-	void SetUniformFloat(const std::string& name, float value) const;
+    void SetUniformFloat(const std::string& name, float value) const;
+    void SetUniformVec3(const std::string& name, glm::vec3 value) const;
 	void SetUniformMat4(const std::string& name, const glm::mat4& mat4_value_ptr) const;
 
 private:

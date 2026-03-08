@@ -4,7 +4,7 @@
 #include <string>
 #include "resource_container.h"
 #include "texture.h"
-#include "mesh.h"
+#include "meshdata.h"
 
 namespace NocEngine
 {

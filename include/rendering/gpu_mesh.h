@@ -65,5 +65,6 @@ namespace NocEngine
 			else
 				glDrawArrays(GL_TRIANGLES, 0, index_count);
 		}
+
 	};
 }

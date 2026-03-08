@@ -5,7 +5,7 @@
 
 #include "resource_handle.h"
 #include "texture.h"
-#include "mesh.h"
+#include "meshdata.h"
 #include "gpu_mesh.h"
 #include "gpu_texture.h"
 
