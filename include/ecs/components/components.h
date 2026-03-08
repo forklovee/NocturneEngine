@@ -25,8 +25,8 @@ struct CTransform: CComponent {
 };
 
 struct CMeshRenderer: CComponent{
-	ResourceHandle<MeshData> meshdata_handle;
-	ResourceHandle<Texture> texture_handle;
+	ResourceHandle<MeshData> mesh;
+	ResourceHandle<Texture> texture;
 
 	GPU_Mesh* gpu_mesh{};
 	GPU_Texture* gpu_texture{};

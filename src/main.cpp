@@ -11,6 +11,7 @@
 #include "resource_manager.h"
 #include <light_component.h>
 #include <chrono>
+#include <array>
 
 using namespace NocEngine;
 
@@ -19,9 +20,23 @@ namespace NocEngine {
         return EntityManager::Get().CreateEntity();
     }
 
+    void KillEntity(Entity entity) {
+        EntityManager::Get().KillEntity(entity);
+    }
+
+    template<ValidComponent T>
+    T& GetComponent(Entity entity) {
+        return ComponentManager::Get().GetComponent<T>(entity);
+    }
+
     template<ValidComponent T>
     T& CreateComponent(Entity entity) {
         return ComponentManager::Get().CreateComponent<T>(entity);
+    }
+
+    template<ValidComponent T>
+    void DestroyComponent(Entity entity) {
+        ComponentManager::Get().DestroyComponent<T>(entity);
     }
 }
 
@@ -31,28 +46,23 @@ int main() {
 
   ResourceManager& resource_manager = ResourceManager::Get();
 
-  Entity lightSource = CreateEntity();
-  CTransform& tc = CreateComponent<CTransform>(lightSource);
-  tc.position = glm::vec3(1.5f, 0.f, 0.f);
-  tc.scale = glm::vec3(0.5f);
-  CLightComponent& light = CreateComponent<CLightComponent>(lightSource);
-  CMeshRenderer& mr = CreateComponent<CMeshRenderer>(lightSource);
-  mr.meshdata_handle = resource_manager.Load<NocEngine::MeshData>("");
-  mr.texture_handle = resource_manager.Load<Texture>("assets/images/white.bmp");
-
   // Entities and components creation test
+  const int entitesToSpawn{ 10 };
+  std::array<Entity, entitesToSpawn> entitesToTransform{};
   const uint8_t cols{ 5 };
-  for (size_t i{}; i < 10; i++) {
+  for (size_t i{}; i < entitesToSpawn; i++) {
     const uint8_t row{ i % cols };
 
     Entity e = CreateEntity();
+    entitesToTransform[i] = e;
+
     CTransform& tc = CreateComponent<CTransform>(e);
     tc.position.x = -static_cast<float>(cols) * .5f + (row * 1.5f);
     tc.position.z = 4.0 - ((e / cols) * 1.5f);
 
     CMeshRenderer& mr = CreateComponent<CMeshRenderer>(e);
-    mr.meshdata_handle = resource_manager.Load<NocEngine::MeshData>("");
-    mr.texture_handle = resource_manager.Load<Texture>(
+    mr.mesh = resource_manager.Load<NocEngine::MeshData>("");
+    mr.texture = resource_manager.Load<Texture>(
         (i % 2) ? "assets/images/example.jpg" : "assets/images/cat.jpg"
     );
 
@@ -64,24 +74,43 @@ int main() {
     }
   }
 
-  std::vector<CTransform>& transforms = ComponentManager::Get().GetComponents<CTransform>();
+  Entity lightSource = CreateEntity();
+  CTransform& lightSourceTrans = CreateComponent<CTransform>(lightSource);
+  lightSourceTrans.position = glm::vec3(1.5f, 0.f, 0.f);
+  lightSourceTrans.scale = glm::vec3(0.15f);
+  CLightComponent& light = CreateComponent<CLightComponent>(lightSource);
+  CMeshRenderer& mr = CreateComponent<CMeshRenderer>(lightSource);
+  mr.mesh = resource_manager.Load<NocEngine::MeshData>("");
+  mr.texture = resource_manager.Load<Texture>("assets/images/white.bmp");
 
-  std::bitset<64> renderableMeshesBitmask{ renderingSystem.GetRenderableEnityBitmask() };
-
+  float lastTime = glfwGetTime();
   while (!window.ShouldClose()) {
-    float time = glfwGetTime();
-    
+    float deltaTime = glfwGetTime() - lastTime;
+    lastTime = glfwGetTime();
+
     window.PollEvents();
     window.ClearScreen();
 
-    tc.position = glm::vec3(
-        5.5f * std::sin(time),
-        5.5f * std::cos(time),
-        5.5f * std::sin(time)
+    // Process
+
+    lightSourceTrans.position = glm::vec3(
+        5.5f * std::sin(lastTime),
+        0.75f,
+        2.5f
+        /*5.5f * std::cos(lastTime),
+        5.5f * std::sin(lastTime)*/
     );
 
-    renderingSystem.Update();
+    for (Entity& e : entitesToTransform) {
+        CTransform& t = GetComponent<CTransform>(e);
+        t.rotation.y += 0.5 * deltaTime;
+    }
 
+    // Process
+
+
+    // Present
+    renderingSystem.Update();
     window.Present();
   }
 

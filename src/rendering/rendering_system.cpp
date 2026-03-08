@@ -29,7 +29,7 @@ namespace NocEngine
     {
 		CTransform& transformComponent = ComponentManager::Get().CreateComponent<CTransform>(m_activeCamera);
         transformComponent.rotation.x = glm::radians(15.f);
-        transformComponent.position = glm::vec3(0.f, -5.f, -15.f);
+        transformComponent.position = glm::vec3(0.f, 0.f, -8.f);
         CCamera& cameraComponent = ComponentManager::Get().CreateComponent<CCamera>(m_activeCamera);
         
         glEnable(GL_DEPTH_TEST);
@@ -129,9 +129,9 @@ namespace NocEngine
         CMeshRenderer& meshRenderer = cm.GetComponent<CMeshRenderer>(entity);
 
         if (!meshRenderer.gpu_mesh)
-	        meshRenderer.gpu_mesh = load_OpenGLMesh(meshRenderer.meshdata_handle);
+	        meshRenderer.gpu_mesh = load_OpenGLMesh(meshRenderer.mesh);
 	    if (!meshRenderer.gpu_texture)
-            meshRenderer.gpu_texture = load_OpenGLTexture(meshRenderer.texture_handle);
+            meshRenderer.gpu_texture = load_OpenGLTexture(meshRenderer.texture);
 
         if (!meshRenderer.gpu_mesh) return; // Mesh is needed for rendering. Texture is optional.
 
