@@ -5,7 +5,7 @@ Nocturne Engine is a learning project exploring low-level game engine design, fe
 
 ## Current State
 
-<img width="1282" height="752" alt="image" src="https://github.com/user-attachments/assets/0efa81e9-dd42-404c-a5b5-45bf618bcde0" />
+https://github.com/user-attachments/assets/d29f2a72-4e67-4705-a75e-093db2eeda7b
 
 ## Current Features
 ### Core Systems:
@@ -13,6 +13,7 @@ Custom Entity Component System (ECS) architecture
 - Entities and Entity Manager/Factory
 - Components and Component Manager/Factory
 - Rendering System
+- Phong Lighting Model
 - Resource Manager
 
 GLFW window management
