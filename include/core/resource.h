@@ -7,24 +7,30 @@ namespace NocEngine
 	class IResource
 	{
 	public:
-		IResource() = delete;
-		IResource(const char* file_path)
-			: m_file_path(file_path)
+		IResource()
+			: m_filePath("")
+		{};
+		IResource(const char* filePath)
+			: m_filePath(filePath)
 		{};
 		virtual ~IResource() = default;
 
-		IResource(const IResource& other) = delete;
-		IResource(IResource&& other) noexcept
-			: m_file_path(other.m_file_path), m_generation(other.m_generation)
+		IResource(const IResource& other)
+			:m_filePath(other.m_filePath), m_generation(other.m_generation)
 		{
-			other.m_file_path = nullptr;
+		}
+
+		IResource(IResource&& other) noexcept
+			: m_filePath(other.m_filePath), m_generation(other.m_generation)
+		{
+			other.m_filePath = nullptr;
 		};
 
 		IResource& operator=(const IResource& other) = delete;
 		IResource& operator=(IResource&& other) noexcept {
-			m_file_path = other.m_file_path;
+			m_filePath = other.m_filePath;
 			m_generation = other.m_generation;
-			other.m_file_path = nullptr;
+			other.m_filePath = nullptr;
 			return *this;
 		}
 
@@ -37,7 +43,7 @@ namespace NocEngine
 		}
 
 	protected:
-		const char* m_file_path{ nullptr };
+		const char* m_filePath;
 		uint32_t m_generation{};
 	};
 }

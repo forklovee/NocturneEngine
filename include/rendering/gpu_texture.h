@@ -32,8 +32,12 @@ namespace NocEngine
 		}
 
 		void Bind() const override {
-			if (!IsValid()) return;
-			glActiveTexture(GL_TEXTURE0);
+			Bind(0);
+		}
+
+		void Bind(GLuint unit = 0) const {
+			if (!IsValid() || unit > GL_MAX_TEXTURE_IMAGE_UNITS) return;
+			glActiveTexture(GL_TEXTURE0 + unit);
 			glBindTexture(GL_TEXTURE_2D, texture_id);
 		}
 

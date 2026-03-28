@@ -38,13 +38,50 @@ namespace NocEngine {
     void DestroyComponent(Entity entity) {
         ComponentManager::Get().DestroyComponent<T>(entity);
     }
+
+    Handle<MeshData> LoadMesh(FilePath meshPath = "") {
+        return ResourceManager::Get().Load<MeshData>(meshPath);
+    }
+
+    Handle<Texture> LoadTexture(FilePath texturePath = "") {
+        return ResourceManager::Get().Load<Texture>(texturePath);
+    }
+
+    Handle<Material> LoadMaterial(FilePath materialPath = "") {
+        return ResourceManager::Get().Load<Material>(materialPath);
+    }
+
+    template<ResourceType T>
+    T* GetResource(Handle<T> handle) {
+        return ResourceManager::Get().Get(handle);
+    }
 }
 
 int main() {
   Window window{{1280, 720}, "NocEngine" };
+  
   RenderingSystem renderingSystem;
 
-  ResourceManager& resource_manager = ResourceManager::Get();
+  Handle<Texture> creepyTex = LoadTexture("assets/images/example.jpg");
+  Handle<Texture> kittyTex = LoadTexture("assets/images/cat.jpg");
+  Handle<Texture> whiteTex = LoadTexture("assets/images/white.bmp");
+  
+  Handle<Material> exampleMat1 = LoadMaterial("assets/material/example1.mat");
+  if (Material* mat = exampleMat1.Get()) {
+      mat->AlbedoTexture = creepyTex;
+      mat->AmbientColor = glm::vec3(1.f, 1.f, 1.f);
+      mat->DiffuseColor = glm::vec3(1.f, 1.f, 1.f);
+      mat->SpecularColor = glm::vec3(1.f, 1.f, 1.f);
+      mat->Roughness = 0.0f;
+  }
+  Handle<Material> exampleMat2 = LoadMaterial("assets/material/example2.mat");
+  if (Material* mat = exampleMat2.Get()) {
+      mat->AlbedoTexture = kittyTex;
+      mat->AmbientColor = glm::vec3(1.f, 1.f, 1.f);
+      mat->DiffuseColor = glm::vec3(1.f, 1.f, 1.f);
+      mat->SpecularColor = glm::vec3(1.f, 1.f, 1.f);
+      mat->Roughness = 0.f;
+  }
 
   // Entities and components creation test
   const int entitesToSpawn{ 10 };
@@ -61,10 +98,8 @@ int main() {
     tc.position.z = 4.0 - ((e / cols) * 1.5f);
 
     CMeshRenderer& mr = CreateComponent<CMeshRenderer>(e);
-    mr.mesh = resource_manager.Load<NocEngine::MeshData>("");
-    mr.texture = resource_manager.Load<Texture>(
-        (i % 2) ? "assets/images/example.jpg" : "assets/images/cat.jpg"
-    );
+    mr.mesh = LoadMesh("");
+    mr.material = (i % 2 == 0) ? exampleMat1 : exampleMat2;
 
     if (i % 3 == 0){
       CreateComponent<CBoxShape>(e);
@@ -80,8 +115,8 @@ int main() {
   lightSourceTrans.scale = glm::vec3(0.15f);
   CLightComponent& light = CreateComponent<CLightComponent>(lightSource);
   CMeshRenderer& mr = CreateComponent<CMeshRenderer>(lightSource);
-  mr.mesh = resource_manager.Load<NocEngine::MeshData>("");
-  mr.texture = resource_manager.Load<Texture>("assets/images/white.bmp");
+  mr.mesh = LoadMesh("");
+  mr.material = exampleMat1;
 
   float lastTime = glfwGetTime();
   while (!window.ShouldClose()) {
@@ -95,15 +130,13 @@ int main() {
 
     lightSourceTrans.position = glm::vec3(
         5.5f * std::sin(lastTime),
-        0.75f,
+        1.f,
         2.5f
-        /*5.5f * std::cos(lastTime),
-        5.5f * std::sin(lastTime)*/
     );
 
     for (Entity& e : entitesToTransform) {
         CTransform& t = GetComponent<CTransform>(e);
-        t.rotation.y += 0.5 * deltaTime;
+        t.rotation.y += 0.2 * deltaTime;
     }
 
     // Process

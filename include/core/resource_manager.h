@@ -2,9 +2,11 @@
 
 #include <type_traits>
 #include <string>
+#include "handle.h"
 #include "resource_container.h"
 #include "texture.h"
 #include "meshdata.h"
+#include "material.h"
 
 namespace NocEngine
 {
@@ -19,18 +21,20 @@ namespace NocEngine
 		}
 
 		template<ResourceType T>
-		ResourceHandle<T> Load(const FilePath& file_path, bool autoload_asset = true) {
+		Handle<T> Load(const FilePath& file_path, bool autoload_asset = true) {
 			return getResourceContainer<T>().Load(file_path, autoload_asset);
 		}
 
 		template<ResourceType T>
-		T* Get(const ResourceHandle<T>& handle) {
+		T* Get(const Handle<T>& handle) {
 			return getResourceContainer<T>().Get(handle);
 		}
 
 	private:
 		ResourceManager()
-			: m_texturesContainer(m_resourcePathPool), m_meshContainer(m_resourcePathPool)
+			: m_meshContainer(m_resourcePathPool),
+			m_texturesContainer(m_resourcePathPool),
+			m_materialsContainer(m_resourcePathPool)
 		{};
 
 		template<ResourceType T>
@@ -38,10 +42,15 @@ namespace NocEngine
 
 	private:
 		StringPool m_resourcePathPool{};
-		ResourceContainer<Texture> m_texturesContainer;
 		ResourceContainer<MeshData> m_meshContainer;
-
+		ResourceContainer<Texture> m_texturesContainer;
+		ResourceContainer<Material> m_materialsContainer;
 	};
+
+	template<>
+	inline ResourceContainer<MeshData>& ResourceManager::getResourceContainer() {
+		return m_meshContainer;
+	}
 
 	template<>
 	inline ResourceContainer<Texture>& ResourceManager::getResourceContainer() {
@@ -49,7 +58,7 @@ namespace NocEngine
 	}
 
 	template<>
-	inline ResourceContainer<MeshData>& ResourceManager::getResourceContainer() {
-		return m_meshContainer;
+	inline ResourceContainer<Material>& ResourceManager::getResourceContainer() {
+		return m_materialsContainer;
 	}
 }

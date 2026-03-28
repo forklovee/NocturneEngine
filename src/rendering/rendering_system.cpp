@@ -13,6 +13,7 @@
 #include "entity_manager.h"
 #include "meshdata.h"
 #include "texture.h"
+#include "material.h"
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/ext/matrix_clip_space.hpp>
 #include <chrono>
@@ -32,6 +33,8 @@ namespace NocEngine
         transformComponent.position = glm::vec3(0.f, 0.f, -8.f);
         CCamera& cameraComponent = ComponentManager::Get().CreateComponent<CCamera>(m_activeCamera);
         
+        m_whiteTexture = ResourceManager::Get().Load<Texture>("assets/images/white.bmp");
+
         glEnable(GL_DEPTH_TEST);
     }
 
@@ -57,8 +60,8 @@ namespace NocEngine
             case CCamera::ProjectionType::Perspective:
                 projection = glm::perspective(
                     glm::radians(cameraProperties.projection_fov),
-                    1280 / 720.f,
-                    0.1f, 100.f);
+                    1280 / 720.f, //TODO: change with actual window resolution
+                    cameraProperties.near_plane, cameraProperties.far_plane);
                 break;
             case CCamera::ProjectionType::Orthographic:
                 projection = glm::ortho(
@@ -69,20 +72,22 @@ namespace NocEngine
         }
 
         // Set Ambient Light
-        m_baseShader.SetUniformVec3("ambientLightColor", m_env.ambient_light);
-        m_baseShader.SetUniformFloat("ambientLightStrength", m_env.ambient_light_strength);
+        m_baseShader.SetUniformVec3("light.ambientColor", m_env.ambient_light);
 
         // Set PV matrices
-        m_baseShader.SetUniformMat4("view", view);
-        m_baseShader.SetUniformMat4("projection", projection);
+        m_baseShader.SetUniformMat4("pvm.view", view);
+        m_baseShader.SetUniformMat4("pvm.projection", projection);
 
-        // Process Lights (Single for now.)
+        // Process Lights (Single light for now.)
         EntityManager::Get().ForEachWithBitmask(
-            [this](Entity entity) {
+            [this, &view](Entity entity) {
                 CLightComponent& lc = ComponentManager::Get().GetComponent<CLightComponent>(entity);
                 CTransform& tc = ComponentManager::Get().GetComponent<CTransform>(entity);
-                m_baseShader.SetUniformVec3("lightPosition", tc.position);
-                m_baseShader.SetUniformVec3("lightColor", lc.light_color * lc.light_strength);
+                glm::vec3 viewSpaceLightPosition = glm::vec3(view * glm::vec4(tc.position, 1.f));
+                m_baseShader.SetUniformVec3("light.position", viewSpaceLightPosition);
+                m_baseShader.SetUniformVec3("light.ambientColor", lc.ambientColor);
+                m_baseShader.SetUniformVec3("light.diffuseColor", lc.diffuseColor);
+                m_baseShader.SetUniformVec3("light.specularColor", lc.specularColor);
             },
             ComponentManager::Get().GetComponentBitset<CLightComponent>() |
             ComponentManager::Get().GetComponentBitset<CTransform>()
@@ -128,32 +133,54 @@ namespace NocEngine
         CTransform& transform = cm.GetComponent<CTransform>(entity);
         CMeshRenderer& meshRenderer = cm.GetComponent<CMeshRenderer>(entity);
 
-        if (!meshRenderer.gpu_mesh)
-	        meshRenderer.gpu_mesh = load_OpenGLMesh(meshRenderer.mesh);
-	    if (!meshRenderer.gpu_texture)
-            meshRenderer.gpu_texture = load_OpenGLTexture(meshRenderer.texture);
+        if (!meshRenderer.mesh.IsValid()) {
+            return;
+        }
+        if (!meshRenderer.gpu_mesh) { // Load GPU mesh, if not loaded
+            meshRenderer.gpu_mesh = load_OpenGLMesh(meshRenderer.mesh);
+        }
 
-        if (!meshRenderer.gpu_mesh) return; // Mesh is needed for rendering. Texture is optional.
+        Material* material = ResourceManager::Get().Get(meshRenderer.material);
+        if (material)
+        {
+            if (!material->AlbedoTexture.IsValid()) {
+                material->AlbedoTexture = m_whiteTexture;
+            }
+
+            if (!meshRenderer.gpu_texture) { // Load GPU texture, if not loaded
+                meshRenderer.gpu_texture = load_OpenGLTexture(material->AlbedoTexture);
+            }
+        }
 
         // Set Model and Normal Matrices
 		glm::mat4 model = getMatrixFromCTransform(transform);
         glm::mat4 normalMatrix = glm::transpose(glm::inverse(model));
-        m_baseShader.SetUniformMat4("model", model);
-        m_baseShader.SetUniformMat4("normalMatrix", normalMatrix);
+        m_baseShader.SetUniformMat4("pvm.model", model);
+        m_baseShader.SetUniformMat4("pvm.normal", normalMatrix);
+
+        // Set material properties
+        if (material) {
+            m_baseShader.SetUniformVec3("material.ambientColor", material->AmbientColor * m_env.ambient_light);
+            m_baseShader.SetUniformVec3("material.diffuseColor", material->DiffuseColor);
+            m_baseShader.SetUniformVec3("material.specularColor", material->SpecularColor);
+            m_baseShader.SetUniformFloat("material.roughness", material->Roughness);
+        }
+        else {
+            m_baseShader.SetUniformVec3("material.ambientColor", glm::vec3(1.f));
+            m_baseShader.SetUniformVec3("material.diffuseColor", glm::vec3(1.f));
+            m_baseShader.SetUniformVec3("material.specularColor", glm::vec3(1.f));
+            m_baseShader.SetUniformFloat("material.roughness", 0.f);
+        }
 
         // Bind mesh texture
         if (meshRenderer.gpu_texture) {
             meshRenderer.gpu_texture->Bind();
         }
-        else {
-            m_white_texture->Bind();
-        }
 
         meshRenderer.gpu_mesh->Draw();
-
     }
 
-    GPU_Mesh* RenderingSystem::getGPUMesh(const ResourceHandle<MeshData>& meshdata_handle)
+    GPU_Mesh* RenderingSystem::getGPUMesh(const Handle<MeshData>& meshdata_handle)
     {
         auto it = m_gpuMeshes.find(meshdata_handle.id);
         if (it == m_gpuMeshes.end()) return nullptr;
@@ -161,8 +188,9 @@ namespace NocEngine
         return nullptr;
     }
 
-    GPU_Mesh* RenderingSystem::load_OpenGLMesh(const ResourceHandle<MeshData>& meshdata_handle)
+    GPU_Mesh* RenderingSystem::load_OpenGLMesh(const Handle<MeshData>& meshdata_handle)
     {
+        if (!meshdata_handle.IsValid()) return nullptr;
         if (GPU_Mesh* gpu_mesh = getGPUMesh(meshdata_handle)){
             return gpu_mesh;
         }
@@ -173,7 +201,7 @@ namespace NocEngine
             m_gpuMeshes[meshdata_id]->Destroy();
         }
 
-        MeshData* mesh_data = ResourceManager::Get().Get<MeshData>(meshdata_handle);
+        MeshData* mesh_data = meshdata_handle.Get();
         if (!mesh_data) {
             return nullptr;
         }
@@ -223,7 +251,7 @@ namespace NocEngine
 	    return m_gpuMeshes[meshdata_id].get();
     }
 
-    GPU_Texture* RenderingSystem::getGPUTexture(const ResourceHandle<Texture>& texture_handle)
+    GPU_Texture* RenderingSystem::getGPUTexture(const Handle<Texture>& texture_handle)
     {
         auto it = m_gpuTextures.find(texture_handle.id);
         if (it == m_gpuTextures.end()) return nullptr;
@@ -231,8 +259,9 @@ namespace NocEngine
         return nullptr;
     }
 
-    GPU_Texture* RenderingSystem::load_OpenGLTexture(const ResourceHandle<Texture>& texture_handle)
+    GPU_Texture* RenderingSystem::load_OpenGLTexture(const Handle<Texture>& texture_handle)
     {
+        if (!texture_handle.IsValid()) return nullptr;
         if (GPU_Texture* gpu_texture = getGPUTexture(texture_handle)) {
             return gpu_texture;
         }
@@ -243,7 +272,7 @@ namespace NocEngine
 		    m_gpuTextures[texture_id]->Destroy();
         }
 
-	    Texture* texture = ResourceManager::Get().Get<Texture>(texture_handle);
+	    Texture* texture = texture_handle.Get();
         if (!texture) {
             return nullptr;
         }
@@ -274,30 +303,6 @@ namespace NocEngine
         m_gpuTextures[texture_id] = std::move(gpu_texture);
 	    return m_gpuTextures[texture_id].get();
     }
-
-    void RenderingSystem::createWhiteTexture()
-    {
-        if (m_white_texture) {
-            return;
-        }
-
-        auto gpuTexture = std::make_unique<OpenGL_Texture>();
-        gpuTexture->generation = 0;
-
-        glGenTextures(1, &gpuTexture->texture_id);
-        glBindTexture(GL_TEXTURE_2D, gpuTexture->texture_id);
-
-        unsigned char whiteVec[] = { 255, 255, 255 };
-        glTexImage2D(GL_TEXTURE_2D, 1, GL_RGB8, 1, 1, 0, GL_RGB8, GL_UNSIGNED_BYTE, whiteVec);
-
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-        glBindTexture(GL_TEXTURE_2D, 0);
-
-        m_gpuTextures[std::numeric_limits<uint32_t>::max()] = std::move(gpuTexture);
-    }
-
 
     glm::mat4 RenderingSystem::getMatrixFromCTransform(const CTransform& transform_component) const
     {

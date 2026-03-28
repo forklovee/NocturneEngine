@@ -14,7 +14,7 @@ namespace NocEngine
 			: IResource(file_path)
 		{};
 
-		~Texture() override {
+		~Texture() {
 			Unload();
 		};
 
@@ -46,7 +46,7 @@ namespace NocEngine
 				return;
 			}
 			stbi_set_flip_vertically_on_load(true);
-			m_image_ptr = stbi_load(m_file_path, &m_size.x, &m_size.y, &m_channels, 0);
+			m_image_ptr = stbi_load(m_filePath, &m_size.x, &m_size.y, &m_channels, 0);
 			if (!m_image_ptr) {
 				return;
 			}

@@ -3,9 +3,10 @@
 #include <glm/vec3.hpp>
 #include <cstdint>
 
-#include "resource_handle.h"
+#include "handle.h"
 #include "texture.h"
 #include "meshdata.h"
+#include "material.h"
 #include "gpu_mesh.h"
 #include "gpu_texture.h"
 
@@ -25,8 +26,8 @@ struct CTransform: CComponent {
 };
 
 struct CMeshRenderer: CComponent{
-	ResourceHandle<MeshData> mesh;
-	ResourceHandle<Texture> texture;
+	Handle<MeshData> mesh{};
+	Handle<Material> material{};
 
 	GPU_Mesh* gpu_mesh{};
 	GPU_Texture* gpu_texture{};
