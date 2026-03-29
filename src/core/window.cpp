@@ -4,16 +4,16 @@
 #include <iostream>
 #include <stdexcept>
 
+#include <rendering_system.h>
+#include <input_system.h>
+
+#include "event_bus.h"
+#include "events.h"
+
 namespace NocEngine {
 
-Window::Window()
-  : m_size(640, 340), m_title("Window")
-{
-  init();
-}
-
-Window::Window(glm::vec2 size, const char *title)
-    : m_size(size), m_title(title)
+Window::Window(EventBus& eventBus, glm::vec2 size, const char *title)
+    : m_eventBus(eventBus), m_size(size), m_title(title)
 {
   init();
 }
@@ -24,6 +24,11 @@ Window::~Window()
   glfwTerminate();
 
   std::cout << "Window '" << m_title << "' destroyed.\n";
+}
+
+void Window::UpdateViewportSize() const
+{
+    m_eventBus.Notify(WindowSizeChangedEvent(m_size));
 }
 
 void Window::ClearScreen() const
@@ -43,28 +48,36 @@ void Window::PollEvents() const
 }
 
 
-void Window::error_callback(int error, const char *description) {
+void Window::errorCallback(int error, const char *description) {
   fprintf(stderr, "GLFWError: %s\n", description);
 }
 
-void Window::key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
+void Window::windowKeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
-  if (action == GLFW_PRESS)
-  {
-    switch (key)
+    Window* targetWindow = static_cast<Window*>(glfwGetWindowUserPointer(window));
+    if (!targetWindow) return;
+
+    if (action == GLFW_PRESS)
     {
-      case GLFW_KEY_ESCAPE:
-        glfwSetWindowShouldClose(window, GLFW_TRUE);
-        break;
+        switch (key)
+        {
+        case GLFW_KEY_ESCAPE:
+            glfwSetWindowShouldClose(window, GLFW_TRUE);
+            return;
+        }
     }
-  }
+
+    targetWindow->m_eventBus.Notify(KeyEvent(key, scancode, action, mods));
 }
 
-void Window::framebuffer_size_callback(GLFWwindow* window, int width, int height)
+void Window::framebufferSizeChangeCallback(GLFWwindow* window, int width, int height)
 {
-  glViewport(0, 0, width, height);
-}
+    Window* targetWindow = static_cast<Window*>(glfwGetWindowUserPointer(window));
+    if (!targetWindow) return;
 
+    glViewport(0, 0, width, height);
+    targetWindow->m_eventBus.Notify(WindowSizeChangedEvent(width, height));
+}
 
 void Window::init() {
   // Create window
@@ -76,7 +89,7 @@ void Window::init() {
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-  glfwWindowHintString(GLFW_X11_CLASS_NAME, "Nocturnis Engine");
+  glfwWindowHintString(GLFW_X11_CLASS_NAME, m_title.c_str());
 
   m_window =
       glfwCreateWindow(m_size.x, m_size.y, m_title.c_str(), nullptr, nullptr);
@@ -87,9 +100,10 @@ void Window::init() {
 
   glfwMakeContextCurrent(m_window);
 
-  glfwSetErrorCallback(error_callback);
-  glfwSetKeyCallback(m_window, key_callback);
-  glfwSetWindowSizeCallback(m_window, framebuffer_size_callback);
+  glfwSetWindowUserPointer(m_window, this);
+  glfwSetErrorCallback(errorCallback);
+  glfwSetKeyCallback(m_window, windowKeyCallback);
+  glfwSetFramebufferSizeCallback(m_window, framebufferSizeChangeCallback);
 
   glfwSwapInterval(1);
 
@@ -104,6 +118,7 @@ void Window::init() {
   int fb_width, fb_height;
   glfwGetFramebufferSize(m_window, &fb_width, &fb_height);
   glViewport(0, 0, fb_width, fb_height);
+  m_eventBus.Notify(WindowSizeChangedEvent(fb_width, fb_height));
 }
 
 } // namespace NocEngine

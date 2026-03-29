@@ -34,13 +34,13 @@ namespace NocEngine {
             return *this;
         }
 
-        Handle(Handle&& other)
+        Handle(Handle&& other) noexcept
         {
             id = other.id;
             generation = other.generation;
             other.Invalidate();
         }
-        Handle& operator=(Handle&& other) {
+        Handle& operator=(Handle&& other) noexcept {
             id = other.id;
             generation = other.generation;
             other.Invalidate();

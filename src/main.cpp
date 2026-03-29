@@ -8,6 +8,8 @@
 
 #include "meshdata.h"
 #include "rendering_system.h"
+#include <event_bus.h>
+#include <input_system.h>
 #include "resource_manager.h"
 #include <light_component.h>
 #include <chrono>
@@ -58,36 +60,40 @@ namespace NocEngine {
 }
 
 int main() {
-  Window window{{1280, 720}, "NocEngine" };
-  
-  RenderingSystem renderingSystem;
+    EventBus eventBus;
+    Window window{ eventBus, {1280, 720}, "NocEngine" };
 
-  Handle<Texture> creepyTex = LoadTexture("assets/images/example.jpg");
-  Handle<Texture> kittyTex = LoadTexture("assets/images/cat.jpg");
-  Handle<Texture> whiteTex = LoadTexture("assets/images/white.bmp");
-  
-  Handle<Material> exampleMat1 = LoadMaterial("assets/material/example1.mat");
-  if (Material* mat = exampleMat1.Get()) {
-      mat->AlbedoTexture = creepyTex;
-      mat->AmbientColor = glm::vec3(1.f, 1.f, 1.f);
-      mat->DiffuseColor = glm::vec3(1.f, 1.f, 1.f);
-      mat->SpecularColor = glm::vec3(1.f, 1.f, 1.f);
-      mat->Roughness = 0.0f;
-  }
-  Handle<Material> exampleMat2 = LoadMaterial("assets/material/example2.mat");
-  if (Material* mat = exampleMat2.Get()) {
-      mat->AlbedoTexture = kittyTex;
-      mat->AmbientColor = glm::vec3(1.f, 1.f, 1.f);
-      mat->DiffuseColor = glm::vec3(1.f, 1.f, 1.f);
-      mat->SpecularColor = glm::vec3(1.f, 1.f, 1.f);
-      mat->Roughness = 0.f;
-  }
+    RenderingSystem renderingSystem(eventBus);
+    window.UpdateViewportSize();
 
-  // Entities and components creation test
-  const int entitesToSpawn{ 10 };
-  std::array<Entity, entitesToSpawn> entitesToTransform{};
-  const uint8_t cols{ 5 };
-  for (size_t i{}; i < entitesToSpawn; i++) {
+    InputSystem inputSystem(eventBus);
+
+    Handle<Texture> creepyTex = LoadTexture("assets/images/example.jpg");
+    Handle<Texture> kittyTex = LoadTexture("assets/images/cat.jpg");
+    Handle<Texture> whiteTex = LoadTexture("assets/images/white.bmp");
+  
+    Handle<Material> exampleMat1 = LoadMaterial("assets/material/example1.mat");
+    if (Material* mat = exampleMat1.Get()) {
+        mat->AlbedoTexture = creepyTex;
+        mat->AmbientColor = glm::vec3(1.f, 1.f, 1.f);
+        mat->DiffuseColor = glm::vec3(1.f, 1.f, 1.f);
+        mat->SpecularColor = glm::vec3(1.f, 1.f, 1.f);
+        mat->Roughness = 0.0f;
+    }
+    Handle<Material> exampleMat2 = LoadMaterial("assets/material/example2.mat");
+    if (Material* mat = exampleMat2.Get()) {
+        mat->AlbedoTexture = kittyTex;
+        mat->AmbientColor = glm::vec3(1.f, 1.f, 1.f);
+        mat->DiffuseColor = glm::vec3(1.f, 1.f, 1.f);
+        mat->SpecularColor = glm::vec3(1.f, 1.f, 1.f);
+        mat->Roughness = 0.f;
+    }
+
+    // Entities and components creation test
+    const int entitesToSpawn{ 10 };
+    std::array<Entity, entitesToSpawn> entitesToTransform{};
+    const uint8_t cols{ 5 };
+    for (size_t i{}; i < entitesToSpawn; i++) {
     const uint8_t row{ i % cols };
 
     Entity e = CreateEntity();
@@ -102,24 +108,24 @@ int main() {
     mr.material = (i % 2 == 0) ? exampleMat1 : exampleMat2;
 
     if (i % 3 == 0){
-      CreateComponent<CBoxShape>(e);
+        CreateComponent<CBoxShape>(e);
     }
     if (i % 2 == 0){
-      CreateComponent<CSphereShape>(e);
+        CreateComponent<CSphereShape>(e);
     }
-  }
+    }
 
-  Entity lightSource = CreateEntity();
-  CTransform& lightSourceTrans = CreateComponent<CTransform>(lightSource);
-  lightSourceTrans.position = glm::vec3(1.5f, 0.f, 0.f);
-  lightSourceTrans.scale = glm::vec3(0.15f);
-  CLightComponent& light = CreateComponent<CLightComponent>(lightSource);
-  CMeshRenderer& mr = CreateComponent<CMeshRenderer>(lightSource);
-  mr.mesh = LoadMesh("");
-  mr.material = exampleMat1;
+    Entity lightSource = CreateEntity();
+    CTransform& lightSourceTrans = CreateComponent<CTransform>(lightSource);
+    lightSourceTrans.position = glm::vec3(1.5f, 0.f, 0.f);
+    lightSourceTrans.scale = glm::vec3(0.15f);
+    CLightComponent& light = CreateComponent<CLightComponent>(lightSource);
+    CMeshRenderer& mr = CreateComponent<CMeshRenderer>(lightSource);
+    mr.mesh = LoadMesh("");
+    mr.material = exampleMat1;
 
-  float lastTime = glfwGetTime();
-  while (!window.ShouldClose()) {
+    float lastTime = glfwGetTime();
+    while (!window.ShouldClose()) {
     float deltaTime = glfwGetTime() - lastTime;
     lastTime = glfwGetTime();
 
@@ -145,7 +151,7 @@ int main() {
     // Present
     renderingSystem.Update();
     window.Present();
-  }
+    }
 
-  std::cout << "Window closed.\n";
+    std::cout << "Window closed.\n";
 }

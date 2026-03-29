@@ -23,11 +23,17 @@
 
 namespace NocEngine
 {
-    RenderingSystem::RenderingSystem()
-        : m_baseShader("assets/shaders/base_vertex.glsl", "assets/shaders/base_fragment.glsl"),
+    RenderingSystem::RenderingSystem(EventBus& eventBus)
+        : ISystem(eventBus),
+            m_baseShader("assets/shaders/base_vertex.glsl", "assets/shaders/base_fragment.glsl"),
             m_activeCamera(EntityManager::Get().CreateEntity()),
-            m_env{}
+            m_env{},
+            m_screenResolution{32, 32}
     {
+        std::function<void(const WindowSizeChangedEvent&)> updateScreenResolution =
+            [this](const WindowSizeChangedEvent& event) { onWindowSizeChanged(event); };
+        m_eventBus.Subscribe<WindowSizeChangedEvent>(updateScreenResolution);
+
 		CTransform& transformComponent = ComponentManager::Get().CreateComponent<CTransform>(m_activeCamera);
         transformComponent.rotation.x = glm::radians(15.f);
         transformComponent.position = glm::vec3(0.f, 0.f, -8.f);
@@ -60,7 +66,7 @@ namespace NocEngine
             case CCamera::ProjectionType::Perspective:
                 projection = glm::perspective(
                     glm::radians(cameraProperties.projection_fov),
-                    1280 / 720.f, //TODO: change with actual window resolution
+                    m_screenResolution.x / static_cast<float>(m_screenResolution.y),
                     cameraProperties.near_plane, cameraProperties.far_plane);
                 break;
             case CCamera::ProjectionType::Orthographic:
@@ -313,6 +319,13 @@ namespace NocEngine
         matrix = glm::rotate(matrix, transform_component.rotation.z, glm::vec3(0.0f, 0.0f, 1.0f));
         matrix = glm::scale(matrix, transform_component.scale);
         return matrix;
+    }
+
+    void RenderingSystem::onWindowSizeChanged(const WindowSizeChangedEvent& event)
+    {
+        m_screenResolution.x = event.width;
+        m_screenResolution.y = event.height;
+        glViewport(0, 0, m_screenResolution.x, m_screenResolution.y);
     }
 
 }

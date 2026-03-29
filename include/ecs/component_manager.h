@@ -60,6 +60,7 @@ class ComponentManager
     std::vector<std::unique_ptr<IComponentArray>> m_components{};
     std::vector<std::type_index> m_registered_types{};
 
+    // TODO: Group components by type for easy iteration and fast processing.
 };
 
 template<ValidComponent T>

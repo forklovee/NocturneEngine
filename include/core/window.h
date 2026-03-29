@@ -5,13 +5,14 @@
 #include "glm/vec2.hpp"
 
 #include <string>
+#include <event_bus.h>
 
 namespace NocEngine {
 
 class Window {
 public:
-  Window();
-  Window(glm::vec2 size, const char *title);
+  Window() = delete;
+  Window(EventBus& eventBus, glm::vec2 size, const char *title);
   ~Window();
 
   Window(const Window &other) = delete;
@@ -19,6 +20,7 @@ public:
   Window(Window &&other) = delete;
   Window &operator=(Window &&other) = delete;
 
+  void UpdateViewportSize() const;
   void ClearScreen() const;
   void Present() const;
   void PollEvents() const;
@@ -28,12 +30,13 @@ public:
 
 private:
   void init();
-
-  static void error_callback(int error, const char *description);
-  static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
-  static void framebuffer_size_callback(GLFWwindow* window, int width, int height);
+  static void errorCallback(int error, const char *description);
+  static void windowKeyCallback(struct GLFWwindow* window, int key, int scancode, int action, int mods);
+  static void framebufferSizeChangeCallback(struct GLFWwindow* window, int width, int height);
 
 private:
+  EventBus& m_eventBus;
+
   GLFWwindow *m_window;
   std::string m_title{};
   glm::vec2 m_size{};

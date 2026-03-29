@@ -4,14 +4,15 @@ project(ECS_System)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-
 add_executable(${PROJECT_NAME} src/main.cpp)
 
 target_include_directories(${PROJECT_NAME} PRIVATE
     include
     include/core
     include/ecs
+    include/ecs/systems
     include/ecs/components
+    include/events
     include/rendering
 )
 
@@ -34,8 +35,9 @@ target_sources(${PROJECT_NAME} PRIVATE
   src/core/window.cpp
   src/ecs/entity_manager.cpp
   src/stb_image.cpp
-  src/rendering/rendering_system.cpp
+  src/ecs/systems/rendering_system.cpp
   src/rendering/shader.cpp
+  src/ecs/systems/input_system.cpp
 )
 
 target_link_libraries(${PROJECT_NAME} glad glfw glm::glm)
