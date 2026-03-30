@@ -12,16 +12,17 @@ https://github.com/user-attachments/assets/d29f2a72-4e67-4705-a75e-093db2eeda7b
 Custom Entity Component System (ECS) architecture
 - Entities and Entity Manager/Factory
 - Components and Component Manager/Factory
-- Rendering System
-- Phong Lighting Model
+- Rendering System: 3D rendering, materials, phong lighting model
 - Resource Manager
+- Global Event Bus
 
 GLFW window management
 
 ### Architecture Highlights
 The engine follows data-oriented design principles
-- Contiguous component storage for cache efficiency
+- Contiguous component storage for cache efficiency (using eg. Sparse Sets)
 - Separation of data (components) and behavior (systems)
+- Rendering data structures prepared for future Vulkan and DirectX implementations
 
 ## Building
 Make sure to download included submodules with:
